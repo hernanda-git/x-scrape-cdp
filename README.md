@@ -1,45 +1,57 @@
 # x-scrape-cdp 
 
 <p align="center">
-  <strong>Cyberpunk-grade X profile listener powered by Chrome CDP + Playwright</strong><br />
-  Tap into real logged-in browser sessions, stream fresh posts, and archive signal like a data runner.
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=24&duration=2800&pause=800&center=true&vCenter=true&width=900&lines=Real-session+X+profile+listener;Chrome+CDP+%2B+Playwright+automation;Clean+JSONL+output+for+reliable+data+pipelines" alt="Typing animation" />
 </p>
 
-<p align="center"><code>[[ SIGNAL PIPELINE ACTIVE ]]</code></p>
+<p align="center">
+  <strong>Elegant, production-ready X profile listener powered by Chrome CDP + Playwright.</strong><br />
+  Capture fresh posts from selected profiles using your own logged-in browser context.
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+" />
   <img src="https://img.shields.io/badge/playwright-async-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright" />
   <img src="https://img.shields.io/badge/chrome-cdp-00E5FF?style=for-the-badge&logo=googlechrome&logoColor=black" alt="Chrome CDP" />
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-FF00C8?style=for-the-badge" alt="Cross platform" />
-  <img src="https://img.shields.io/badge/mode-cyberpunk-8A2BE2?style=for-the-badge" alt="Cyberpunk mode" />
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-111827?style=for-the-badge" alt="Cross platform" />
+  <img src="https://img.shields.io/badge/style-premium%20readme-7C3AED?style=for-the-badge" alt="Premium style" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/reliability-session--first-16A34A?style=flat-square" alt="Session first" />
+  <img src="https://img.shields.io/badge/output-JSONL-0EA5E9?style=flat-square" alt="JSONL output" />
+  <img src="https://img.shields.io/badge/runtime-async-7C3AED?style=flat-square" alt="Async runtime" />
+</p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=110&color=gradient&text=x-scrape-cdp&fontAlign=50&fontAlignY=35" alt="Decorative wave" />
 </p>
 
 ---
 
-## Navigation Grid
+## Navigation
 
-- [Mission Profile](#mission-profile)
+- [Overview](#overview)
 - [Safety and Operational Scope](#safety-and-operational-scope)
-- [Neon Architecture Map](#neon-architecture-map)
+- [Architecture at a Glance](#architecture-at-a-glance)
 - [System Prerequisites](#system-prerequisites)
 - [Step-by-Step Quick Start](#step-by-step-quick-start)
 - [CLI Commands](#cli-commands)
-- [Config Matrix](#config-matrix)
-- [Data Vault and Samples](#data-vault-and-samples)
+- [Configuration Guide](#configuration-guide)
+- [Data Outputs and Samples](#data-outputs-and-samples)
 - [Multi-Instance Usage](#multi-instance-usage)
 - [Docker Compose (Multi Listener)](#docker-compose-multi-listener)
 - [Troubleshooting](#troubleshooting)
-- [Ops Checklist](#ops-checklist)
+- [Maintenance Checklist](#maintenance-checklist)
 
 ---
 
-## Mission Profile
+## Overview
 
 `x-scrape-cdp` listens for posts from configured X profiles by connecting to a real Chrome session via the Chrome DevTools Protocol (CDP).  
 It avoids brittle "fake login" automation by reusing your authenticated browser profile and writing deduplicated post data to JSON files.
 
-### Core Capabilities
+### Highlights
 
 - Real-session authentication (manual login + 2FA supported)
 - Async Playwright scraping flow with stealth profile tuning
@@ -62,20 +74,20 @@ Use responsibly and ensure your operation complies with platform terms, local re
 
 ---
 
-## Neon Architecture Map
+## Architecture at a Glance
 
 ```text
-[ Chrome: logged-in profile ]
-             |
-             v   CDP // http://127.0.0.1:9222
-[ Playwright live connection ]
-             |
-             v
-[ Navigate targets -> extract posts -> deduplicate ]
-             |
-             +--> data/seen_ids.json   (identity ledger)
-             +--> data/posts.jsonl     (event stream)
-             +--> optional webhook     (live relay)
+Chrome (logged-in user profile)
+        |
+        v   CDP (http://127.0.0.1:9222)
+Playwright connection
+        |
+        v
+Navigate target profiles -> extract posts -> deduplicate
+        |
+        +--> data/seen_ids.json
+        +--> data/posts.jsonl
+        +--> optional webhook payload
 ```
 
 Core modules:
@@ -213,7 +225,7 @@ Developer helpers:
 
 ---
 
-## Config Matrix
+## Configuration Guide
 
 Primary config: [`config/default.yaml`](config/default.yaml)
 
@@ -229,7 +241,7 @@ CDP URL can be overridden with:
 CDP_URL=http://127.0.0.1:9222
 ```
 
-### Main settings matrix
+### Main settings map
 
 | Section | Key fields | Description |
 | --- | --- | --- |
@@ -252,7 +264,7 @@ targets:
 
 ---
 
-## Data Vault and Samples
+## Data Outputs and Samples
 
 Generated files:
 
@@ -298,7 +310,7 @@ Run one named instance on Windows:
 ./scripts/run_instance.ps1 -Name primary
 ```
 
-Runtime behavior:
+What it does:
 
 - Reads instance metadata from `config/instances.yaml`
 - Sets `CDP_URL` and `CONFIG_PATH`
@@ -310,7 +322,7 @@ Runtime behavior:
 
 Compose file: [`docker/compose.multi.yaml`](docker/compose.multi.yaml)
 
-Deployment lanes:
+It defines:
 
 - `listener-primary` -> uses host CDP `9222`
 - `listener-secondary` -> uses host CDP `9223`
@@ -352,7 +364,7 @@ Note: each listener still depends on a separately launched and authenticated Chr
 
 ---
 
-## Ops Checklist
+## Maintenance Checklist
 
 - Recheck selectors after major X UI updates
 - Back up `data/posts.jsonl` regularly
