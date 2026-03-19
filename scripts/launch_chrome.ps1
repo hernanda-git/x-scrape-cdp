@@ -5,8 +5,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path $UserDataDir)) {
-    New-Item -ItemType Directory -Path $UserDataDir | Out-Null
+# Resolve to an absolute path so Chrome does not interpret
+# relative paths against its own install directory.
+$resolvedUserDataDir = [System.IO.Path]::GetFullPath($UserDataDir)
+
+if (-not (Test-Path $resolvedUserDataDir)) {
+    New-Item -ItemType Directory -Path $resolvedUserDataDir | Out-Null
 }
 
 $chromeCandidates = @(
@@ -21,7 +25,7 @@ if (-not $chromePath) {
 
 $args = @(
     "--remote-debugging-port=$Port",
-    "--user-data-dir=$UserDataDir",
+    "--user-data-dir=$resolvedUserDataDir",
     "--no-first-run",
     "--no-default-browser-check"
 )

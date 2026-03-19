@@ -1,0 +1,2 @@
+[console_scripts]
+x-scrape-cdp = x_scrape_cdp.cli:main
