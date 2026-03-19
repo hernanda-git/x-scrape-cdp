@@ -38,7 +38,7 @@ notify:
   webhook_url: null
 
 targets:
-  - "x"
+  - "Learnernoearner"
 
 max_scroll_rounds: 5
 dry_run: false
