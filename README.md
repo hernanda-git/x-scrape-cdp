@@ -1,7 +1,7 @@
 # x-scrape-cdp 
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=24&duration=2800&pause=800&center=true&vCenter=true&width=900&lines=Real-session+X+profile+listener;Chrome+CDP+%2B+Playwright+automation;Clean+JSONL+output+for+reliable+data+pipelines" alt="Typing animation" />
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=22&duration=900&pause=200&color=00FF41&center=true&vCenter=true&multiline=true&width=980&height=120&lines=01011000+00101101+01010011+01000011+01010010+01000001+01010000+01000101+00101101+01000011+01000100+01010000;00110011+00101110+00111001+00101011++01110000+01111001+01110100+01101000+01101111+01101110;01000011+01000100+01010000+00100000%2B+00100000+01010000+01101100+01100001+01111001+01110111+01110010+01101001+01100111+01101000+01110100" alt="Binary matrix animation" />
 </p>
 
 <p align="center">
