@@ -14,7 +14,6 @@
   <img src="https://img.shields.io/badge/playwright-async-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright" />
   <img src="https://img.shields.io/badge/chrome-cdp-00E5FF?style=for-the-badge&logo=googlechrome&logoColor=black" alt="Chrome CDP" />
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-111827?style=for-the-badge" alt="Cross platform" />
-  <img src="https://img.shields.io/badge/style-premium%20readme-7C3AED?style=for-the-badge" alt="Premium style" />
 </p>
 
 <p align="center">
