@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Environment
+.env
+
+# Data and profiles
+data/chrome_profile/
+data/*.jsonl
+data/seen_ids.json
+data/posts.jsonl
+!data/.gitkeep
+
+# IDE
+.idea/
+.vscode/

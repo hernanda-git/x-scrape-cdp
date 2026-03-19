@@ -1,0 +1,44 @@
+cdp:
+  http_url: "http://127.0.0.1:9222"
+
+session:
+  cookie_file: null
+  validate_on_startup: true
+
+stealth:
+  viewport:
+    width: 1920
+    height: 1080
+  user_agent: null
+  jitter_percent: 10
+
+navigation:
+  wait_until: "domcontentloaded"
+  tweet_timeout_ms: 15000
+  scroll_rounds: 3
+  pause_seconds_min: 2.0
+  pause_seconds_max: 4.0
+  include_replies: false
+
+schedule:
+  interval_seconds_min: 240
+  interval_seconds_max: 600
+
+extraction:
+  mode: "playwright"
+  prompt_template: null
+
+storage:
+  data_dir: "data"
+  seen_ids_file: "data/seen_ids.json"
+  posts_file: "data/posts.jsonl"
+
+notify:
+  enabled: false
+  webhook_url: null
+
+targets:
+  - "x"
+
+max_scroll_rounds: 5
+dry_run: false

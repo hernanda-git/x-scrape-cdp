@@ -1,0 +1,12 @@
+instances:
+  - name: "primary"
+    cdp_port: 9222
+    user_data_dir: "data/chrome_profile_primary"
+    proxy_url: null
+    config_path: "config/default.yaml"
+
+  - name: "secondary"
+    cdp_port: 9223
+    user_data_dir: "data/chrome_profile_secondary"
+    proxy_url: null
+    config_path: "config/default.yaml"

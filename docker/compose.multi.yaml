@@ -1,0 +1,22 @@
+services:
+  listener-primary:
+    build:
+      context: ..
+    working_dir: /app
+    command: python -m x_scrape_cdp.cli run --config config/default.yaml
+    environment:
+      - CDP_URL=http://host.docker.internal:9222
+      - CONFIG_PATH=config/default.yaml
+    volumes:
+      - ../:/app
+
+  listener-secondary:
+    build:
+      context: ..
+    working_dir: /app
+    command: python -m x_scrape_cdp.cli run --config config/default.yaml
+    environment:
+      - CDP_URL=http://host.docker.internal:9223
+      - CONFIG_PATH=config/default.yaml
+    volumes:
+      - ../:/app
