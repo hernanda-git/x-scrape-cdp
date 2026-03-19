@@ -7,6 +7,12 @@ session:
 navigation:
   include_replies: false
 
+# Without this block, the app defaults to 240–600 s between cycles (see config/default.yaml).
+schedule:
+  interval_seconds_min: 5
+  interval_seconds_max: 17
+  max_refreshes_per_minute: 15
+
 storage:
   seen_ids_file: "data/seen_ids.json"
   posts_file: "data/posts.jsonl"

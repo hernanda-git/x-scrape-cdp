@@ -19,6 +19,7 @@ from .state import (
 )
 from .stealth import StealthProfile, apply_stealth
 from .storage import append_posts_jsonl, load_seen, reset_listener_data_files, save_seen_atomic
+from . import rich_log
 
 logger = logging.getLogger("x_scrape_cdp.loop")
 
@@ -120,16 +121,20 @@ async def run_once(settings: Settings) -> int:
                     save_seen_atomic(settings.seen_ids_file, seen)
                     new_total += len(fresh)
                     logger.info("event=new_posts target=%s count=%s", target, len(fresh))
+                    if rich_log.use_rich_stdout():
+                        rich_log.print_new_posts_summary(target, len(fresh))
                     for p in fresh:
                         d = p.to_dict()
                         logger.info(
                             "event=new_post target=%s id=%s kind=%s url=%s text=%s",
                             target,
                             p.id,
-                            d.get("classification", {}).get("kind"),
+                            d.get("kind"),
                             p.url,
-                            _preview_text(d.get("content", {}).get("text") or ""),
+                            _preview_text(d.get("text") or ""),
                         )
+                        if rich_log.use_rich_stdout():
+                            rich_log.print_new_post_detail(d)
                     if settings.webhook_enabled and settings.webhook_url:
                         await post_webhook(
                             settings.webhook_url,
@@ -156,7 +161,17 @@ async def run_once(settings: Settings) -> int:
 
 
 async def run_listener(settings: Settings) -> None:
-    logger.info("event=listener_start targets=%s", ",".join(settings.targets))
+    targets = settings.targets
+    logger.info(
+        "event=listener_start targets=%s schedule=random_%s_%s_s rate_floor=%.2fs (max_%s/min caps minimum sleep only)",
+        ",".join(targets),
+        settings.interval_seconds_min,
+        settings.interval_seconds_max,
+        settings.min_seconds_between_cycles,
+        settings.max_refreshes_per_minute,
+    )
+    if rich_log.use_rich_stdout():
+        rich_log.print_listener_start(targets)
     while True:
         try:
             await run_once(settings)
@@ -172,4 +187,11 @@ async def run_listener(settings: Settings) -> None:
             )
         else:
             logger.info("event=sleep seconds=%.2f", sleep_seconds)
+        if rich_log.use_rich_stdout():
+            rich_log.print_sleep(
+                sleep_seconds,
+                clamped=clamped,
+                cap=settings.max_refreshes_per_minute,
+                floor=rate_floor,
+            )
         await asyncio.sleep(sleep_seconds)

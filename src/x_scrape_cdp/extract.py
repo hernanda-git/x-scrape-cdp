@@ -13,7 +13,7 @@ TWEET_URL_RE = re.compile(r"/status/(\d+)")
 TEXT_RE = re.compile(r'<div[^>]*data-testid="tweetText"[^>]*>(.*?)</div>', re.DOTALL)
 STRIP_TAGS_RE = re.compile(r"<[^>]+>")
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Extract structured fields from one tweet article (DOM root = data-testid="tweet").
 TWEET_ARTICLE_EXTRACT_JS = """
@@ -25,20 +25,56 @@ TWEET_ARTICLE_EXTRACT_JS = """
   const socialEl = q(el, '[data-testid="socialContext"]');
   const socialText = socialEl ? (socialEl.innerText || "").trim() : "";
 
+  const statusIdFromHref = (h) => {
+    if (!h) return null;
+    const m = String(h).match(/\\/status\\/(\\d+)/);
+    return m ? m[1] : null;
+  };
+
+  /** Username segment before /status/ID in path or full URL. */
+  const handleFromStatusHref = (h) => {
+    if (!h) return null;
+    try {
+      const path = h.startsWith("http") ? new URL(h).pathname : h;
+      const m = path.match(/^\\/?([^/]+)\\/status\\/\\d+/i);
+      if (!m) return null;
+      const u = m[1];
+      if (!u || u === "i" || u === "home" || u === "explore") return null;
+      return u;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  /**
+   * Canonical tweet id: X almost always wraps <time> in <a href=".../status/THIS_ID">.
+   * Using the first /status/ link breaks replies: the parent link often appears above.
+   */
   let statusHref = null;
-  for (const a of qa(el, 'a[href*="/status/"]')) {
-    if (quoteRoot && quoteRoot.contains(a)) continue;
-    const h = a.getAttribute("href");
-    if (!h) continue;
-    if (/\\/status\\/\\d+/.test(h)) {
+  let id = null;
+  for (const t of qa(el, "time")) {
+    if (quoteRoot && quoteRoot.contains(t)) continue;
+    const parentA = t.closest("a");
+    if (!parentA) continue;
+    const h = parentA.getAttribute("href");
+    const sid = statusIdFromHref(h);
+    if (sid) {
       statusHref = h;
+      id = sid;
       break;
     }
   }
-  if (!statusHref) return null;
-  const idMatch = statusHref.match(/\\/status\\/(\\d+)/);
-  const id = idMatch ? idMatch[1] : null;
-  if (!id) return null;
+  if (!id) {
+    for (const a of qa(el, 'a[href*="/status/"]')) {
+      if (quoteRoot && quoteRoot.contains(a)) continue;
+      const h = a.getAttribute("href");
+      if (!h || !/\\/status\\/\\d+/.test(h)) continue;
+      statusHref = h;
+      id = statusIdFromHref(h);
+      break;
+    }
+  }
+  if (!id || !statusHref) return null;
 
   const parseAriaCount = (testid) => {
     const btn = q(el, '[data-testid="' + testid + '"]');
@@ -70,11 +106,61 @@ TWEET_ARTICLE_EXTRACT_JS = """
     if (ts) break;
   }
 
+  let inReplyToStatusId = null;
+  let inReplyToHandle = null;
+
+  const trySetParent = (href) => {
+    const pid = statusIdFromHref(href);
+    if (!pid || pid === id) return false;
+    inReplyToStatusId = pid;
+    inReplyToHandle = handleFromStatusHref(href);
+    return true;
+  };
+
+  if (socialEl) {
+    for (const a of qa(socialEl, 'a[href*="/status/"]')) {
+      if (trySetParent(a.getAttribute("href"))) break;
+    }
+    if (!inReplyToHandle) {
+      for (const a of qa(socialEl, 'a[href^="/"]')) {
+        const h = a.getAttribute("href") || "";
+        if (!/^\\/[A-Za-z0-9_]{1,30}\\/?$/.test(h) || h.includes("/i/")) continue;
+        const handle = h.replace(/^\\//, "").split("/")[0];
+        if (handle && handle !== "home" && handle !== "explore" && handle !== "messages") {
+          inReplyToHandle = handle;
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Parent permalink often lives outside socialContext (or UI omits status links there).
+   * Any other /status/ID in the article (outside quote) that is not this tweet is the reply target.
+   */
+  if (!inReplyToStatusId) {
+    for (const a of qa(el, 'a[href*="/status/"]')) {
+      if (quoteRoot && quoteRoot.contains(a)) continue;
+      const h = a.getAttribute("href");
+      if (trySetParent(h)) break;
+    }
+  }
+
+  if (!inReplyToHandle && socialText) {
+    const hm = socialText.match(/@([A-Za-z0-9_]{1,30})\\b/);
+    if (hm) inReplyToHandle = hm[1];
+  }
+
   const st = socialText.toLowerCase();
   let kind = "original";
   if (st.includes("reposted") || st.includes("retweeted") || st.includes("repost")) {
     kind = "retweet";
+  } else if (st.includes("replying to") || st.includes("reply to")) {
+    kind = "reply";
   } else if (st.includes("replied")) {
+    kind = "reply";
+  }
+  if (inReplyToStatusId && kind === "original") {
     kind = "reply";
   }
   if (quoteRoot) {
@@ -164,6 +250,8 @@ TWEET_ARTICLE_EXTRACT_JS = """
     ts,
     kind,
     socialContext: socialText || null,
+    inReplyToStatusId,
+    inReplyToHandle,
     engagement: {
       replies: parseAriaCount("reply"),
       retweets: parseAriaCount("retweet"),
@@ -201,35 +289,36 @@ class Post:
     quoted_tweet: dict[str, Any] | None
     media: list[dict[str, Any]]
     bookmarks: int | None = None
+    reply_to_status_id: str | None = None
+    reply_to_handle: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Flat JSONL record (schema_version 2)."""
+        media_list = [
+            str(m["url"])
+            for m in self.media
+            if isinstance(m, dict) and m.get("url")
+        ]
         return {
             "schema_version": SCHEMA_VERSION,
             "id": self.id,
-            "url": self.url,
-            "scraped_at": self.scraped_at,
-            "context": {"listened_target": self.listened_target},
-            "author": {
-                "handle": self.author_handle,
-                "display_name": self.author_display_name,
-            },
-            "content": {
-                "text": self.content_text,
-                "published_at": self.content_published_at,
-            },
-            "classification": {
-                "kind": self.classification_kind,
-                "social_context": self.social_context,
-            },
-            "engagement": {
-                "replies": self.engagement_replies,
-                "retweets": self.engagement_retweets,
-                "likes": self.engagement_likes,
-                "views": self.engagement_views,
-                "bookmarks": self.bookmarks,
-            },
+            "handle": self.author_handle,
+            "text": self.content_text,
+            "published_at": self.content_published_at,
+            "replies": self.engagement_replies,
+            "retweets": self.engagement_retweets,
+            "likes": self.engagement_likes,
+            "views": self.engagement_views,
+            "bookmarks": self.bookmarks,
             "quoted_tweet": self.quoted_tweet,
-            "media": self.media,
+            "media": media_list,
+            "kind": self.classification_kind,
+            "reply_to_status_id": self.reply_to_status_id,
+            "reply_to_handle": self.reply_to_handle,
+            "url": self.url,
+            "listened_target": self.listened_target,
+            "scraped_at": self.scraped_at,
+            "social_context": self.social_context,
         }
 
     @classmethod
@@ -281,6 +370,8 @@ class Post:
             quoted_tweet=quoted,
             media=[m for m in media if isinstance(m, dict) and m.get("url")],
             bookmarks=eng.get("bookmarks"),
+            reply_to_status_id=data.get("inReplyToStatusId"),
+            reply_to_handle=data.get("inReplyToHandle"),
         )
 
 
@@ -355,6 +446,8 @@ def parse_posts_from_html(html: str) -> list[Post]:
                 engagement_views=None,
                 quoted_tweet=None,
                 media=[],
+                reply_to_status_id=None,
+                reply_to_handle=None,
             )
         )
     return posts

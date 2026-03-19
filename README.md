@@ -248,7 +248,7 @@ CDP_URL=http://127.0.0.1:9222
 | `session` | `cookie_file`, `validate_on_startup` | Session source + startup validation |
 | `stealth` | viewport, `user_agent`, `jitter_percent` | Browser fingerprint hardening knobs |
 | `navigation` | waits, timeouts, scrolls, replies | Timeline navigation behavior |
-| `schedule` | `interval_seconds_min/max`, `max_refreshes_per_minute` | Sleep between cycles; default cap **15/min** (min sleep **4s**); set to `0` to disable |
+| `schedule` | `interval_seconds_min/max`, `max_refreshes_per_minute` | Random sleep **between** cycles in `[min, max]` seconds; **`max_refreshes_per_minute` only sets a minimum sleep floor** (e.g. 15/min → at least ~4s), not a maximum. If you omit `schedule` in a custom YAML, defaults are **240–600 s** (see `config/default.yaml`). For 5–17 s sleeps, copy `schedule` from [`config/listener_5_17.yaml`](config/listener_5_17.yaml). |
 | `extraction` | `mode`, `prompt_template` | Extraction strategy (`playwright` default) |
 | `storage` | paths for seen IDs, posts, `state_file`, `reset_on_change` | Output + reset when config/session changes |
 | `notify` | webhook enabled/url | Optional push notifications |
@@ -271,33 +271,37 @@ Generated files:
 - `data/posts.jsonl` -> append-only extracted posts (structured JSON per line)
 - `data/scrape_state.json` -> remembers config fingerprint + logged-in profile; when either changes and `storage.reset_on_change` is true, **posts and seen IDs are cleared** so you do not mix runs
 
-### `posts.jsonl` sample (schema_version 1)
+### `posts.jsonl` sample (schema_version 2)
 
-Each line is one object with classification, engagement metrics, optional quoted tweet, and media (profile avatars and emoji sprites are filtered out).
+Each line is one **flat** JSON object: core tweet fields, engagement counts, optional quote payload, **media as URL strings**, and reply threading hints when the DOM exposes them.
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "2034599322013041108",
-  "url": "https://x.com/Learnernoearner/status/2034599322013041108",
-  "scraped_at": "2026-03-20T12:00:00+00:00",
-  "context": { "listened_target": "Learnernoearner" },
-  "author": { "handle": "Learnernoearner", "display_name": "…" },
-  "content": { "text": "…", "published_at": "2026-03-19T11:54:14.000Z" },
-  "classification": { "kind": "original", "social_context": null },
-  "engagement": {
-    "replies": 12,
-    "retweets": 3,
-    "likes": 45,
-    "views": 1200,
-    "bookmarks": null
-  },
+  "handle": "Learnernoearner",
+  "text": "…",
+  "published_at": "2026-03-19T11:54:14.000Z",
+  "replies": 12,
+  "retweets": 3,
+  "likes": 45,
+  "views": 1200,
+  "bookmarks": null,
   "quoted_tweet": null,
-  "media": [{ "kind": "image", "url": "https://pbs.twimg.com/media/…" }]
+  "media": ["https://pbs.twimg.com/media/…"],
+  "kind": "reply",
+  "reply_to_status_id": "2034500000000000000",
+  "reply_to_handle": "Learnernoearner",
+  "url": "https://x.com/Learnernoearner/status/2034599322013041108",
+  "listened_target": "Learnernoearner",
+  "scraped_at": "2026-03-20T12:00:00+00:00",
+  "social_context": "Replying to @Learnernoearner"
 }
 ```
 
-Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
+Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. **`reply_to_status_id` / `reply_to_handle`** are filled when links appear under `socialContext` (e.g. self-replies often show “Replying to …” plus a parent status link). If X only shows text without a parent URL, `kind` may still be `reply` while the parent id stays `null`. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
+
+When you run `run` in a **color terminal**, Rich panels summarize each new post (same fields as JSONL).
 
 ### `seen_ids.json` sample
 
