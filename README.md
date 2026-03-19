@@ -1,4 +1,4 @@
-# x-scrape-cdp // NEON EDITION
+# x-scrape-cdp 
 
 <p align="center">
   <strong>Cyberpunk-grade X profile listener powered by Chrome CDP + Playwright</strong><br />
