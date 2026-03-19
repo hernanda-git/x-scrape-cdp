@@ -1,0 +1,15 @@
+cdp:
+  http_url: "http://127.0.0.1:9222"
+
+session:
+  validate_on_startup: false
+
+navigation:
+  include_replies: false
+
+storage:
+  seen_ids_file: "data/seen_ids.json"
+  posts_file: "data/posts.jsonl"
+
+targets:
+  - "0xValarion"

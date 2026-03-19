@@ -16,4 +16,4 @@ def test_parse_posts_from_html():
     """
     posts = parse_posts_from_html(html)
     assert [p.id for p in posts] == ["111", "222"]
-    assert posts[0].text == "First post"
+    assert posts[0].content_text == "First post"

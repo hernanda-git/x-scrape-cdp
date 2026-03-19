@@ -78,6 +78,24 @@ class Settings:
         return int(self.raw.get("schedule", {}).get("interval_seconds_max", 600))
 
     @property
+    def max_refreshes_per_minute(self) -> int:
+        """
+        Upper bound on poll cycles per minute (sleep between run_once iterations).
+        Default 15 => minimum sleep 4s. Set to 0 to disable the safety floor.
+        """
+        raw = self.raw.get("schedule", {}).get("max_refreshes_per_minute", 15)
+        if raw is None:
+            return 15
+        return int(raw)
+
+    @property
+    def min_seconds_between_cycles(self) -> float:
+        cap = self.max_refreshes_per_minute
+        if cap <= 0:
+            return 0.0
+        return 60.0 / float(cap)
+
+    @property
     def data_dir(self) -> Path:
         return Path(str(self.raw.get("storage", {}).get("data_dir", "data")))
 
@@ -88,6 +106,14 @@ class Settings:
     @property
     def posts_file(self) -> Path:
         return Path(str(self.raw.get("storage", {}).get("posts_file", "data/posts.jsonl")))
+
+    @property
+    def scrape_state_file(self) -> Path:
+        return Path(str(self.raw.get("storage", {}).get("state_file", "data/scrape_state.json")))
+
+    @property
+    def reset_data_on_config_or_session_change(self) -> bool:
+        return bool(self.raw.get("storage", {}).get("reset_on_change", True))
 
     @property
     def webhook_enabled(self) -> bool:

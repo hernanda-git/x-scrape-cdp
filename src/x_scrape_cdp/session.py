@@ -30,3 +30,25 @@ async def is_logged_in(page: Page) -> bool:
         return True
 
     return False
+
+
+async def get_logged_in_profile_handle(page: Page) -> str | None:
+    """
+    Best-effort handle for the logged-in account (e.g. symbiomes), from bottom nav profile link.
+    """
+    try:
+        link = page.locator('[data-testid="AppTabBar_Profile_Link"]')
+        if await link.count() == 0:
+            return None
+        href = await link.first.get_attribute("href")
+        if not href:
+            return None
+        parts = [p for p in href.strip("/").split("/") if p]
+        if not parts:
+            return None
+        handle = parts[0]
+        if handle.startswith("i") or "flow" in handle:
+            return None
+        return handle
+    except Exception:
+        return None

@@ -14,70 +14,380 @@ Requires-Dist: pytest>=8.3.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.8; extra == "dev"
 Requires-Dist: ruff>=0.6.0; extra == "dev"
 
-# x-scrape-cdp
+# x-scrape-cdp 
 
-X profile post listener using a real Chrome session connected via CDP and Playwright.
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=24&duration=2800&pause=800&center=true&vCenter=true&width=900&lines=Real-session+X+profile+listener;Chrome+CDP+%2B+Playwright+automation;Clean+JSONL+output+for+reliable+data+pipelines" alt="Typing animation" />
+</p>
 
-## Safety and scope
+<p align="center">
+  <strong>Elegant, production-ready X profile listener powered by Chrome CDP + Playwright.</strong><br />
+  Capture fresh posts from selected profiles using your own logged-in browser context.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.9+" />
+  <img src="https://img.shields.io/badge/playwright-async-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" alt="Playwright" />
+  <img src="https://img.shields.io/badge/chrome-cdp-00E5FF?style=for-the-badge&logo=googlechrome&logoColor=black" alt="Chrome CDP" />
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-111827?style=for-the-badge" alt="Cross platform" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/reliability-session--first-16A34A?style=flat-square" alt="Session first" />
+  <img src="https://img.shields.io/badge/output-JSONL-0EA5E9?style=flat-square" alt="JSONL output" />
+  <img src="https://img.shields.io/badge/runtime-async-7C3AED?style=flat-square" alt="Async runtime" />
+</p>
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=110&color=gradient&text=x-scrape-cdp&fontAlign=50&fontAlignY=35" alt="Decorative wave" />
+</p>
+
+---
+
+## Navigation
+
+- [Overview](#overview)
+- [Safety and Operational Scope](#safety-and-operational-scope)
+- [Architecture at a Glance](#architecture-at-a-glance)
+- [System Prerequisites](#system-prerequisites)
+- [Step-by-Step Quick Start](#step-by-step-quick-start)
+- [CLI Commands](#cli-commands)
+- [Configuration Guide](#configuration-guide)
+- [Data Outputs and Samples](#data-outputs-and-samples)
+- [Multi-Instance Usage](#multi-instance-usage)
+- [Docker Compose (Multi Listener)](#docker-compose-multi-listener)
+- [Troubleshooting](#troubleshooting)
+- [Maintenance Checklist](#maintenance-checklist)
+
+---
+
+## Overview
+
+`x-scrape-cdp` listens for posts from configured X profiles by connecting to a real Chrome session via the Chrome DevTools Protocol (CDP).  
+It avoids brittle "fake login" automation by reusing your authenticated browser profile and writing deduplicated post data to JSON files.
+
+### Highlights
+
+- Real-session authentication (manual login + 2FA supported)
+- Async Playwright scraping flow with stealth profile tuning
+- Deduplication via persistent `seen_ids.json`
+- JSONL append-only post archive for downstream pipelines
+- Optional webhook notification per fresh batch
+- Multi-instance support via named configs and separate CDP ports
+
+---
+
+## Safety and Operational Scope
+
+Project policy docs:
 
 - Risk policy: [`docs/RISKS.md`](docs/RISKS.md)
 - Operational boundaries: [`docs/SCOPE.md`](docs/SCOPE.md)
-- Session decision: [`docs/ADR-001-session-strategy.md`](docs/ADR-001-session-strategy.md)
+- Session architecture decision: [`docs/ADR-001-session-strategy.md`](docs/ADR-001-session-strategy.md)
 
-## Prerequisites
+Use responsibly and ensure your operation complies with platform terms, local regulation, and your own risk controls.
 
-- Python 3.11+
+---
+
+## Architecture at a Glance
+
+```text
+Chrome (logged-in user profile)
+        |
+        v   CDP (http://127.0.0.1:9222)
+Playwright connection
+        |
+        v
+Navigate target profiles -> extract posts -> deduplicate
+        |
+        +--> data/seen_ids.json
+        +--> data/posts.jsonl
+        +--> optional webhook payload
+```
+
+Core modules:
+
+- `src/x_scrape_cdp/cli.py` -> CLI entrypoints (`validate-session`, `once`, `run`)
+- `src/x_scrape_cdp/loop.py` -> orchestration loop and per-target cycle
+- `src/x_scrape_cdp/extract.py` -> post extraction model + parser
+- `src/x_scrape_cdp/config.py` -> YAML/env settings resolution
+- `src/x_scrape_cdp/session.py` -> login state detection
+
+---
+
+## System Prerequisites
+
+- Python `3.9+` (recommended `3.11+`)
 - Google Chrome installed
-- Windows PowerShell (or bash on macOS/Linux)
+- PowerShell on Windows (bash/zsh for Linux/macOS)
+- A valid X account session in Chrome
 
-## Quick start
+---
 
-1. Create a virtual environment and install dependencies:
-   - `python -m venv .venv`
-   - `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (macOS/Linux)
-   - `pip install -e .[dev]`
-2. Install Playwright browser support:
-   - `playwright install chromium`
-3. Launch Chrome with CDP:
-   - Windows: `./scripts/launch_chrome.ps1 -Port 9222 -UserDataDir ./data/chrome_profile`
-   - macOS/Linux: `./scripts/launch_chrome.sh 9222 ./data/chrome_profile`
-4. Open X in that browser and log in manually (including 2FA if required).
-5. Validate session:
-   - `python -m x_scrape_cdp.cli validate-session`
-6. Run one cycle:
-   - `python -m x_scrape_cdp.cli once`
-7. Run loop:
-   - `python -m x_scrape_cdp.cli run`
+## Step-by-Step Quick Start
 
-## Authentication capture workflow
+### 1) Clone and enter project
 
-1. Start Chrome via the launcher script with the same `user-data-dir`.
-2. Visit `https://x.com/` and log in.
-3. Wait around 60 seconds after successful login.
-4. Keep using the same profile for listener runs.
+```bash
+git clone <your-repo-url>
+cd x-scrape-cdp
+```
 
-Optional cookie-file mode is available via `session.cookie_file` in `config/default.yaml`.
+### 2) Create and activate virtual environment
 
-## Config
+```bash
+python -m venv .venv
+```
 
-Default config is at [`config/default.yaml`](config/default.yaml). You can override with:
+Windows PowerShell:
 
-- `CONFIG_PATH` environment variable
-- `CDP_URL` environment variable
+```powershell
+.venv\Scripts\activate
+```
 
-## Data outputs
+Linux/macOS:
 
-- Seen IDs: `data/seen_ids.json`
-- Appended posts: `data/posts.jsonl`
+```bash
+source .venv/bin/activate
+```
 
-## Maintenance
+### 3) Install project dependencies
 
-- Re-check selectors weekly or after major X UI updates.
-- Backup `data/posts.jsonl` to external storage if running long-term.
-- Prefer one listener instance per IP unless you configure separate proxies.
+```bash
+pip install -e .[dev]
+playwright install chromium
+```
 
-## Multi-instance
+### 4) Launch Chrome with remote debugging (CDP uplink)
 
-- Define instances in [`config/instances.yaml`](config/instances.yaml).
-- Launch one by name on Windows:
-  - `./scripts/run_instance.ps1 -Name primary`
+Windows:
+
+```powershell
+./scripts/launch_chrome.ps1 -Port 9222 -UserDataDir ./data/chrome_profile
+```
+
+Expected output:
+
+```text
+Chrome launched with CDP at http://127.0.0.1:9222
+Check endpoint: http://127.0.0.1:9222/json/version
+```
+
+Linux/macOS:
+
+```bash
+./scripts/launch_chrome.sh 9222 ./data/chrome_profile
+```
+
+### 5) Login manually on X in that same browser window
+
+1. Open `https://x.com/` in the launched Chrome window.
+2. Complete login (including 2FA if required).
+3. Wait ~60 seconds after successful login.
+4. Keep using the same user-data directory for future runs.
+
+### 6) Validate the captured session
+
+```bash
+python -m x_scrape_cdp.cli validate-session
+```
+
+Expected success output:
+
+```text
+Session is valid.
+```
+
+### 7) Run a single scrape cycle
+
+```bash
+python -m x_scrape_cdp.cli once
+```
+
+Example output:
+
+```text
+Completed once cycle. New posts: 3
+```
+
+### 8) Run continuous listener mode (always-on)
+
+```bash
+python -m x_scrape_cdp.cli run
+```
+
+Stop gracefully with `Ctrl+C`.
+
+---
+
+## CLI Commands
+
+| Command | Purpose |
+| --- | --- |
+| `python -m x_scrape_cdp.cli validate-session` | Verifies current session is logged in |
+| `python -m x_scrape_cdp.cli once` | Runs one fetch cycle across all targets |
+| `python -m x_scrape_cdp.cli run` | Runs infinite scheduled loop |
+| `python -m x_scrape_cdp.cli <cmd> --config config/default.yaml` | Uses an explicit config file |
+| `x-scrape-cdp <cmd>` | Equivalent script entrypoint from `pyproject.toml` |
+
+Developer helpers:
+
+| Command | Purpose |
+| --- | --- |
+| `make lint` | Ruff linting on `src` and `tests` |
+| `make test` | Pytest run excluding `live` marker |
+| `make run-once` | Shortcut for one cycle |
+
+---
+
+## Configuration Guide
+
+Primary config: [`config/default.yaml`](config/default.yaml)
+
+### Resolution order
+
+1. CLI `--config` argument
+2. `CONFIG_PATH` environment variable
+3. default `config/default.yaml`
+
+CDP URL can be overridden with:
+
+```bash
+CDP_URL=http://127.0.0.1:9222
+```
+
+### Main settings map
+
+| Section | Key fields | Description |
+| --- | --- | --- |
+| `cdp` | `http_url` | CDP endpoint for Playwright connect |
+| `session` | `cookie_file`, `validate_on_startup` | Session source + startup validation |
+| `stealth` | viewport, `user_agent`, `jitter_percent` | Browser fingerprint hardening knobs |
+| `navigation` | waits, timeouts, scrolls, replies | Timeline navigation behavior |
+| `schedule` | `interval_seconds_min/max` | Loop sleep window between cycles |
+| `extraction` | `mode`, `prompt_template` | Extraction strategy (`playwright` default) |
+| `storage` | file paths for seen IDs and posts | Output locations |
+| `notify` | webhook enabled/url | Optional push notifications |
+| root | `targets`, `max_scroll_rounds`, `dry_run` | High-level runtime controls |
+
+### Minimal target example
+
+```yaml
+targets:
+  - "Learnernoearner"
+```
+
+---
+
+## Data Outputs and Samples
+
+Generated files:
+
+- `data/seen_ids.json` -> deduplication index
+- `data/posts.jsonl` -> append-only extracted posts
+
+### `posts.jsonl` sample
+
+```json
+{"id":"2034599322013041108","text":"$BTC \n\nThanks for playing\n\nGm $BTC this weeks move","timestamp":"2026-03-19T11:54:14.000Z","url":"https://x.com/Learnernoearner/status/2034599322013041108","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxZTNoW4AAbitm?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
+{"id":"2034601941242720344","text":"$SOL full tp done #SOL $SOL LIMIT SHORT TRADE\n\nENTRY: 97.35 - 98.5\n\nTARGET: 91.2\n\nSTOPLOSS: 100.35","timestamp":"2026-03-19T12:04:38.000Z","url":"https://x.com/Learnernoearner/status/2034601941242720344","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxbrmpWsAAWOIG?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
+```
+
+### `seen_ids.json` sample
+
+```json
+{
+  "ids": [
+    "2034599322013041108",
+    "2034601941242720344",
+    "2034602223464853814"
+  ]
+}
+```
+
+---
+
+## Multi-Instance Usage
+
+Define instances in [`config/instances.yaml`](config/instances.yaml):
+
+```yaml
+instances:
+  - name: "primary"
+    cdp_port: 9222
+    user_data_dir: "data/chrome_profile_primary"
+    config_path: "config/default.yaml"
+```
+
+Run one named instance on Windows:
+
+```powershell
+./scripts/run_instance.ps1 -Name primary
+```
+
+What it does:
+
+- Reads instance metadata from `config/instances.yaml`
+- Sets `CDP_URL` and `CONFIG_PATH`
+- Starts `python -m x_scrape_cdp.cli run`
+
+---
+
+## Docker Compose (Multi Listener)
+
+Compose file: [`docker/compose.multi.yaml`](docker/compose.multi.yaml)
+
+It defines:
+
+- `listener-primary` -> uses host CDP `9222`
+- `listener-secondary` -> uses host CDP `9223`
+
+Start:
+
+```bash
+docker compose -f docker/compose.multi.yaml up --build
+```
+
+Note: each listener still depends on a separately launched and authenticated Chrome profile on the host machine.
+
+---
+
+## Troubleshooting
+
+### Session invalid on startup
+
+- Reopen the same `user-data-dir` profile in Chrome.
+- Confirm login in `https://x.com/home`.
+- Re-run `validate-session`.
+
+### CDP endpoint not reachable
+
+- Check launcher output endpoint.
+- Open `http://127.0.0.1:9222/json/version` in browser.
+- Ensure no firewall or port collision.
+
+### No new posts detected
+
+- Verify `targets` list in config.
+- Increase `navigation.scroll_rounds`.
+- Check whether IDs are already present in `seen_ids.json`.
+
+### Selector drift after X UI changes
+
+- Revalidate extraction selectors in `extract.py`.
+- Re-test session indicators in `session.py`.
+
+---
+
+## Maintenance Checklist
+
+- Recheck selectors after major X UI updates
+- Back up `data/posts.jsonl` regularly
+- Keep one listener identity per profile/IP unless using dedicated proxy segmentation
+- Pin and update dependencies deliberately (`playwright`, `playwright-stealth`, `PyYAML`)
+
+---
+
+<p align="center">
+  Built for robust session-aware listening and clean downstream data pipelines.
+</p>

@@ -47,3 +47,14 @@ def append_posts_jsonl(path: Path, posts: list[Post]) -> None:
     with path.open("a", encoding="utf-8") as f:
         for post in posts:
             f.write(json.dumps(post.to_dict(), ensure_ascii=True) + "\n")
+
+
+def truncate_file(path: Path) -> None:
+    """Empty a file (create parent dirs). Used when resetting listener data."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("", encoding="utf-8")
+
+
+def reset_listener_data_files(posts_file: Path, seen_ids_file: Path) -> None:
+    truncate_file(posts_file)
+    save_seen_atomic(seen_ids_file, set())

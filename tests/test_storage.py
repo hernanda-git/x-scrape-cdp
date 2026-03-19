@@ -4,6 +4,33 @@ from x_scrape_cdp.extract import Post
 from x_scrape_cdp.storage import append_posts_jsonl, filter_new, load_seen, save_seen_atomic
 
 
+def _post(
+    id_: str,
+    text: str,
+    url: str,
+    scraped_at: str = "t",
+    listened_target: str = "x",
+) -> Post:
+    return Post(
+        id=id_,
+        url=url,
+        scraped_at=scraped_at,
+        listened_target=listened_target,
+        content_text=text,
+        content_published_at=None,
+        author_handle=None,
+        author_display_name=None,
+        classification_kind="original",
+        social_context=None,
+        engagement_replies=None,
+        engagement_retweets=None,
+        engagement_likes=None,
+        engagement_views=None,
+        quoted_tweet=None,
+        media=[],
+    )
+
+
 def test_seen_roundtrip(tmp_data_dir):
     seen_file = tmp_data_dir / "seen_ids.json"
     save_seen_atomic(seen_file, {"1", "2", "3"})
@@ -15,8 +42,8 @@ def test_filter_and_append(tmp_data_dir):
     posts_file = tmp_data_dir / "posts.jsonl"
     existing = {"1"}
     posts = [
-        Post(id="1", text="old", timestamp=None, url="u1", media_urls=[], scraped_at="t"),
-        Post(id="2", text="new", timestamp=None, url="u2", media_urls=[], scraped_at="t"),
+        _post("1", "old", "u1"),
+        _post("2", "new", "u2"),
     ]
     new_posts, updated = filter_new(posts, existing)
     assert [p.id for p in new_posts] == ["2"]

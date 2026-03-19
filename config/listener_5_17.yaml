@@ -1,3 +1,6 @@
+# Listener preset: random sleep between full poll cycles (5–17 seconds).
+# Run: python -m x_scrape_cdp.cli run --config config/listener_5_17.yaml
+
 cdp:
   http_url: "http://127.0.0.1:9222"
 
@@ -21,9 +24,8 @@ navigation:
   include_replies: false
 
 schedule:
-  interval_seconds_min: 240
-  interval_seconds_max: 600
-  # Safety: never sleep less than 60/max_refreshes_per_minute (default 15/min => 4s floor).
+  interval_seconds_min: 5
+  interval_seconds_max: 17
   max_refreshes_per_minute: 15
 
 extraction:
@@ -34,7 +36,6 @@ storage:
   data_dir: "data"
   seen_ids_file: "data/seen_ids.json"
   posts_file: "data/posts.jsonl"
-  # Tracks config + logged-in account; when either changes, posts + seen_ids are reset.
   state_file: "data/scrape_state.json"
   reset_on_change: true
 

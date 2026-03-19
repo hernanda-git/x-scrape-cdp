@@ -1,7 +1,7 @@
 # x-scrape-cdp 
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=22&duration=900&pause=200&color=00FF41&center=true&vCenter=true&multiline=true&width=980&height=120&lines=01011000+00101101+01010011+01000011+01010010+01000001+01010000+01000101+00101101+01000011+01000100+01010000;00110011+00101110+00111001+00101011++01110000+01111001+01110100+01101000+01101111+01101110;01000011+01000100+01010000+00100000%2B+00100000+01010000+01101100+01100001+01111001+01110111+01110010+01101001+01100111+01101000+01110100" alt="Binary matrix animation" />
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=24&duration=2800&pause=800&center=true&vCenter=true&width=900&lines=Real-session+X+profile+listener;Chrome+CDP+%2B+Playwright+automation;Clean+JSONL+output+for+reliable+data+pipelines" alt="Typing animation" />
 </p>
 
 <p align="center">
@@ -248,9 +248,9 @@ CDP_URL=http://127.0.0.1:9222
 | `session` | `cookie_file`, `validate_on_startup` | Session source + startup validation |
 | `stealth` | viewport, `user_agent`, `jitter_percent` | Browser fingerprint hardening knobs |
 | `navigation` | waits, timeouts, scrolls, replies | Timeline navigation behavior |
-| `schedule` | `interval_seconds_min/max` | Loop sleep window between cycles |
+| `schedule` | `interval_seconds_min/max`, `max_refreshes_per_minute` | Sleep between cycles; default cap **15/min** (min sleep **4s**); set to `0` to disable |
 | `extraction` | `mode`, `prompt_template` | Extraction strategy (`playwright` default) |
-| `storage` | file paths for seen IDs and posts | Output locations |
+| `storage` | paths for seen IDs, posts, `state_file`, `reset_on_change` | Output + reset when config/session changes |
 | `notify` | webhook enabled/url | Optional push notifications |
 | root | `targets`, `max_scroll_rounds`, `dry_run` | High-level runtime controls |
 
@@ -268,14 +268,36 @@ targets:
 Generated files:
 
 - `data/seen_ids.json` -> deduplication index
-- `data/posts.jsonl` -> append-only extracted posts
+- `data/posts.jsonl` -> append-only extracted posts (structured JSON per line)
+- `data/scrape_state.json` -> remembers config fingerprint + logged-in profile; when either changes and `storage.reset_on_change` is true, **posts and seen IDs are cleared** so you do not mix runs
 
-### `posts.jsonl` sample
+### `posts.jsonl` sample (schema_version 1)
+
+Each line is one object with classification, engagement metrics, optional quoted tweet, and media (profile avatars and emoji sprites are filtered out).
 
 ```json
-{"id":"2034599322013041108","text":"$BTC \n\nThanks for playing\n\nGm $BTC this weeks move","timestamp":"2026-03-19T11:54:14.000Z","url":"https://x.com/Learnernoearner/status/2034599322013041108","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxZTNoW4AAbitm?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
-{"id":"2034601941242720344","text":"$SOL full tp done #SOL $SOL LIMIT SHORT TRADE\n\nENTRY: 97.35 - 98.5\n\nTARGET: 91.2\n\nSTOPLOSS: 100.35","timestamp":"2026-03-19T12:04:38.000Z","url":"https://x.com/Learnernoearner/status/2034601941242720344","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxbrmpWsAAWOIG?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
+{
+  "schema_version": 1,
+  "id": "2034599322013041108",
+  "url": "https://x.com/Learnernoearner/status/2034599322013041108",
+  "scraped_at": "2026-03-20T12:00:00+00:00",
+  "context": { "listened_target": "Learnernoearner" },
+  "author": { "handle": "Learnernoearner", "display_name": "…" },
+  "content": { "text": "…", "published_at": "2026-03-19T11:54:14.000Z" },
+  "classification": { "kind": "original", "social_context": null },
+  "engagement": {
+    "replies": 12,
+    "retweets": 3,
+    "likes": 45,
+    "views": 1200,
+    "bookmarks": null
+  },
+  "quoted_tweet": null,
+  "media": [{ "kind": "image", "url": "https://pbs.twimg.com/media/…" }]
+}
 ```
+
+Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
 
 ### `seen_ids.json` sample
 
