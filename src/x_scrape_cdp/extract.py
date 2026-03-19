@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Awaitable, Callable
 
 from playwright.async_api import Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .config import Settings
 
@@ -44,8 +45,15 @@ async def extract_visible_posts(page: Page) -> list[Post]:
             continue
 
         text_locator = node.locator('[data-testid="tweetText"]')
-        if await text_locator.count():
-            text = await text_locator.inner_text()
+        text_count = await text_locator.count()
+        if text_count:
+            # Some tweets render multiple text blocks; strict inner_text() can fail.
+            if text_count == 1:
+                text = await text_locator.inner_text()
+            else:
+                text = " ".join(
+                    chunk.strip() for chunk in await text_locator.all_inner_texts() if chunk.strip()
+                )
         else:
             text = ""
         time_locator = node.locator("time")
@@ -57,7 +65,10 @@ async def extract_visible_posts(page: Page) -> list[Post]:
         media_urls: list[str] = []
         media_count = await media_nodes.count()
         for j in range(media_count):
-            src = await media_nodes.nth(j).get_attribute("src")
+            try:
+                src = await media_nodes.nth(j).get_attribute("src", timeout=1500)
+            except PlaywrightTimeoutError:
+                continue
             if src and src.startswith("http"):
                 media_urls.append(src)
 
