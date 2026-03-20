@@ -273,7 +273,7 @@ Generated files:
 
 ### `posts.jsonl` sample (schema_version 2)
 
-Each line is one **flat** JSON object: core tweet fields, engagement counts, optional quote payload, **media as URL strings**, and reply threading hints when the DOM exposes them.
+Each line is one **flat** JSON object: core tweet fields, engagement counts, optional quote payload, and **media as URL strings**.
 
 ```json
 {
@@ -290,8 +290,6 @@ Each line is one **flat** JSON object: core tweet fields, engagement counts, opt
   "quoted_tweet": null,
   "media": ["https://pbs.twimg.com/media/…"],
   "kind": "reply",
-  "reply_to_status_id": "2034500000000000000",
-  "reply_to_handle": "Learnernoearner",
   "url": "https://x.com/Learnernoearner/status/2034599322013041108",
   "listened_target": "Learnernoearner",
   "scraped_at": "2026-03-20T12:00:00+00:00",
@@ -299,7 +297,7 @@ Each line is one **flat** JSON object: core tweet fields, engagement counts, opt
 }
 ```
 
-Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. **`reply_to_status_id` / `reply_to_handle`** are filled when links appear under `socialContext` (e.g. self-replies often show “Replying to …” plus a parent status link). If X only shows text without a parent URL, `kind` may still be `reply` while the parent id stays `null`. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
+Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
 
 When you run `run` in a **color terminal**, Rich panels summarize each new post (same fields as JSONL).
 

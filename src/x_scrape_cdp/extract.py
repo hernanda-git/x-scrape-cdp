@@ -23,7 +23,7 @@ TWEET_ARTICLE_EXTRACT_JS = """
 
   const quoteRoot = q(el, '[data-testid="quoteTweet"]');
   const socialEl = q(el, '[data-testid="socialContext"]');
-  const socialText = socialEl ? (socialEl.innerText || "").trim() : "";
+  const socialText = socialEl ? (socialEl.textContent || "").trim() : "";
 
   const statusIdFromHref = (h) => {
     if (!h) return null;
@@ -289,8 +289,6 @@ class Post:
     quoted_tweet: dict[str, Any] | None
     media: list[dict[str, Any]]
     bookmarks: int | None = None
-    reply_to_status_id: str | None = None
-    reply_to_handle: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Flat JSONL record (schema_version 2)."""
@@ -313,8 +311,6 @@ class Post:
             "quoted_tweet": self.quoted_tweet,
             "media": media_list,
             "kind": self.classification_kind,
-            "reply_to_status_id": self.reply_to_status_id,
-            "reply_to_handle": self.reply_to_handle,
             "url": self.url,
             "listened_target": self.listened_target,
             "scraped_at": self.scraped_at,
@@ -370,8 +366,6 @@ class Post:
             quoted_tweet=quoted,
             media=[m for m in media if isinstance(m, dict) and m.get("url")],
             bookmarks=eng.get("bookmarks"),
-            reply_to_status_id=data.get("inReplyToStatusId"),
-            reply_to_handle=data.get("inReplyToHandle"),
         )
 
 
@@ -446,8 +440,6 @@ def parse_posts_from_html(html: str) -> list[Post]:
                 engagement_views=None,
                 quoted_tweet=None,
                 media=[],
-                reply_to_status_id=None,
-                reply_to_handle=None,
             )
         )
     return posts

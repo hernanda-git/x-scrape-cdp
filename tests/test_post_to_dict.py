@@ -22,8 +22,6 @@ def test_to_dict_flat_schema_v2():
         quoted_tweet=None,
         media=[{"kind": "image", "url": "https://example.com/i.jpg"}],
         bookmarks=0,
-        reply_to_status_id="88",
-        reply_to_handle="a",
     )
     d = p.to_dict()
     assert d["schema_version"] == SCHEMA_VERSION == 2
@@ -31,8 +29,6 @@ def test_to_dict_flat_schema_v2():
     assert d["handle"] == "a"
     assert d["text"] == "hello"
     assert d["kind"] == "reply"
-    assert d["reply_to_status_id"] == "88"
-    assert d["reply_to_handle"] == "a"
     assert d["media"] == ["https://example.com/i.jpg"]
     assert "classification" not in d
     assert "content" not in d
@@ -65,8 +61,5 @@ def test_from_dom_extract_sets_reply_and_kind():
     )
     assert post is not None
     assert post.classification_kind == "reply"
-    assert post.reply_to_status_id == "2034770000000000000"
-    assert post.reply_to_handle == "0xValarion"
     flat = post.to_dict()
     assert flat["kind"] == "reply"
-    assert flat["reply_to_status_id"] == "2034770000000000000"

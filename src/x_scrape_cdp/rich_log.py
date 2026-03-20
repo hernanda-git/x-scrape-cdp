@@ -81,8 +81,6 @@ def print_new_post_detail(flat: dict[str, Any]) -> None:
         "likes",
         "views",
         "bookmarks",
-        "reply_to_status_id",
-        "reply_to_handle",
         "quoted_tweet",
         "media",
         "url",

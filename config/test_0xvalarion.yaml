@@ -5,7 +5,7 @@ session:
   validate_on_startup: false
 
 navigation:
-  include_replies: false
+  include_replies: true
 
 # Without this block, the app defaults to 240–600 s between cycles (see config/default.yaml).
 schedule:
