@@ -240,6 +240,13 @@ CDP URL can be overridden with:
 CDP_URL=http://127.0.0.1:9222
 ```
 
+Cookies can be injected without putting a path in YAML by setting `COOKIE_FILE`. It takes precedence over `session.cookie_file`. The value is either a path to a file (contents are read and parsed as Netscape export or JSON) or raw cookie text if that path does not exist:
+
+```bash
+export COOKIE_FILE=/path/to/x.com_cookies.txt
+python -m x_scrape_cdp.cli validate-session
+```
+
 ### Main settings map
 
 | Section | Key fields | Description |

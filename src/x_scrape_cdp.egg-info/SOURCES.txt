@@ -9,7 +9,9 @@ src/x_scrape_cdp/logging_setup.py
 src/x_scrape_cdp/loop.py
 src/x_scrape_cdp/navigation.py
 src/x_scrape_cdp/notify.py
+src/x_scrape_cdp/rich_log.py
 src/x_scrape_cdp/session.py
+src/x_scrape_cdp/state.py
 src/x_scrape_cdp/stealth.py
 src/x_scrape_cdp/storage.py
 src/x_scrape_cdp.egg-info/PKG-INFO
@@ -20,5 +22,9 @@ src/x_scrape_cdp.egg-info/requires.txt
 src/x_scrape_cdp.egg-info/top_level.txt
 src/x_scrape_cdp/agent/__init__.py
 tests/test_config.py
+tests/test_cookies.py
 tests/test_extract_parsing.py
+tests/test_post_to_dict.py
+tests/test_rate_cap.py
+tests/test_state.py
 tests/test_storage.py

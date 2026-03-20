@@ -22,7 +22,23 @@ class Settings:
 
     @property
     def session_cookie_file(self) -> str | None:
-        return self.raw.get("session", {}).get("cookie_file")
+        """
+        Cookie source: JSON array (Playwright) or Netscape export text.
+
+        If the ``COOKIE_FILE`` environment variable is set to a non-empty value, it
+        takes precedence over ``session.cookie_file`` in YAML. The value may be:
+
+        - A filesystem path: the file is read and parsed by content (not stored in config).
+        - Raw cookie text: if the value is not an existing path, it is parsed as
+          Netscape lines or a JSON cookie array (multi-line env values / heredocs).
+        """
+        env = os.getenv("COOKIE_FILE")
+        if env is not None:
+            stripped = env.strip()
+            if stripped:
+                return stripped
+        val = self.raw.get("session", {}).get("cookie_file")
+        return val if val else None
 
     @property
     def session_validate_on_startup(self) -> bool:

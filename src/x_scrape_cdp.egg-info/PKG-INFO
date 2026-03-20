@@ -9,6 +9,7 @@ Requires-Dist: playwright-stealth>=1.0.6
 Requires-Dist: PyYAML>=6.0.1
 Requires-Dist: httpx>=0.27.0
 Requires-Dist: typer>=0.12.3
+Requires-Dist: rich>=13.0.0
 Provides-Extra: dev
 Requires-Dist: pytest>=8.3.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.8; extra == "dev"
@@ -256,6 +257,13 @@ CDP URL can be overridden with:
 CDP_URL=http://127.0.0.1:9222
 ```
 
+Cookies can be injected without putting a path in YAML by setting `COOKIE_FILE`. It takes precedence over `session.cookie_file`. The value is either a path to a file (contents are read and parsed as Netscape export or JSON) or raw cookie text if that path does not exist:
+
+```bash
+export COOKIE_FILE=/path/to/x.com_cookies.txt
+python -m x_scrape_cdp.cli validate-session
+```
+
 ### Main settings map
 
 | Section | Key fields | Description |
@@ -264,9 +272,9 @@ CDP_URL=http://127.0.0.1:9222
 | `session` | `cookie_file`, `validate_on_startup` | Session source + startup validation |
 | `stealth` | viewport, `user_agent`, `jitter_percent` | Browser fingerprint hardening knobs |
 | `navigation` | waits, timeouts, scrolls, replies | Timeline navigation behavior |
-| `schedule` | `interval_seconds_min/max` | Loop sleep window between cycles |
+| `schedule` | `interval_seconds_min/max`, `max_refreshes_per_minute` | Random sleep **between** cycles in `[min, max]` seconds; **`max_refreshes_per_minute` only sets a minimum sleep floor** (e.g. 15/min → at least ~4s), not a maximum. If you omit `schedule` in a custom YAML, defaults are **240–600 s** (see `config/default.yaml`). For 5–17 s sleeps, copy `schedule` from [`config/listener_5_17.yaml`](config/listener_5_17.yaml). |
 | `extraction` | `mode`, `prompt_template` | Extraction strategy (`playwright` default) |
-| `storage` | file paths for seen IDs and posts | Output locations |
+| `storage` | paths for seen IDs, posts, `state_file`, `reset_on_change` | Output + reset when config/session changes |
 | `notify` | webhook enabled/url | Optional push notifications |
 | root | `targets`, `max_scroll_rounds`, `dry_run` | High-level runtime controls |
 
@@ -284,14 +292,38 @@ targets:
 Generated files:
 
 - `data/seen_ids.json` -> deduplication index
-- `data/posts.jsonl` -> append-only extracted posts
+- `data/posts.jsonl` -> append-only extracted posts (structured JSON per line)
+- `data/scrape_state.json` -> remembers config fingerprint + logged-in profile; when either changes and `storage.reset_on_change` is true, **posts and seen IDs are cleared** so you do not mix runs
 
-### `posts.jsonl` sample
+### `posts.jsonl` sample (schema_version 2)
+
+Each line is one **flat** JSON object: core tweet fields, engagement counts, optional quote payload, and **media as URL strings**.
 
 ```json
-{"id":"2034599322013041108","text":"$BTC \n\nThanks for playing\n\nGm $BTC this weeks move","timestamp":"2026-03-19T11:54:14.000Z","url":"https://x.com/Learnernoearner/status/2034599322013041108","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxZTNoW4AAbitm?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
-{"id":"2034601941242720344","text":"$SOL full tp done #SOL $SOL LIMIT SHORT TRADE\n\nENTRY: 97.35 - 98.5\n\nTARGET: 91.2\n\nSTOPLOSS: 100.35","timestamp":"2026-03-19T12:04:38.000Z","url":"https://x.com/Learnernoearner/status/2034601941242720344","media_urls":["https://pbs.twimg.com/profile_images/1722060690775539712/OP8MFN04_normal.jpg","https://pbs.twimg.com/media/HDxbrmpWsAAWOIG?format=jpg&name=small"],"scraped_at":"2026-03-19T22:29:52.909031+00:00"}
+{
+  "schema_version": 2,
+  "id": "2034599322013041108",
+  "handle": "Learnernoearner",
+  "text": "…",
+  "published_at": "2026-03-19T11:54:14.000Z",
+  "replies": 12,
+  "retweets": 3,
+  "likes": 45,
+  "views": 1200,
+  "bookmarks": null,
+  "quoted_tweet": null,
+  "media": ["https://pbs.twimg.com/media/…"],
+  "kind": "reply",
+  "url": "https://x.com/Learnernoearner/status/2034599322013041108",
+  "listened_target": "Learnernoearner",
+  "scraped_at": "2026-03-20T12:00:00+00:00",
+  "social_context": "Replying to @Learnernoearner"
+}
 ```
+
+Kinds include `original`, `reply`, `retweet`, `quote`, and combined forms like `reply_with_quote` when X shows both reply context and a quote card. Counts are parsed from button `aria-label`s when present (X UI changes may leave some fields null).
+
+When you run `run` in a **color terminal**, Rich panels summarize each new post (same fields as JSONL).
 
 ### `seen_ids.json` sample
 
