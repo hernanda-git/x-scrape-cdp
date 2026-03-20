@@ -42,8 +42,8 @@ def once(config: str | None = typer.Option(default=None, help="Path to config ya
 async def _once_async(config: str | None) -> None:
     configure_logging()
     settings = load_settings(config)
-    count = await run_once(settings)
-    typer.echo(f"Completed once cycle. New posts: {count}")
+    new_total, _new_posts = await run_once(settings)
+    typer.echo(f"Completed once cycle. New posts: {new_total}")
 
 
 @app.command("run")

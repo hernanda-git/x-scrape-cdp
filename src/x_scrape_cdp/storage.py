@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from .extract import Post
 
@@ -58,3 +59,44 @@ def truncate_file(path: Path) -> None:
 def reset_listener_data_files(posts_file: Path, seen_ids_file: Path) -> None:
     truncate_file(posts_file)
     save_seen_atomic(seen_ids_file, set())
+
+
+def load_recent_posts_jsonl(path: Path, *, limit: int = 10) -> list[dict[str, Any]]:
+    """
+    Tail a JSONL file and parse the last `limit` JSON objects.
+    Designed to avoid loading the whole file in memory for large scrape runs.
+    """
+    if limit <= 0 or not path.exists():
+        return []
+
+    size = path.stat().st_size
+    if size == 0:
+        return []
+
+    # Read backwards in chunks until we likely have enough newlines.
+    # Then parse only the last `limit` complete lines.
+    with path.open("rb") as f:
+        f.seek(0, os.SEEK_END)
+        end = f.tell()
+        chunk_size = 8192
+        data = b""
+        newline_count = 0
+        while end > 0 and newline_count < (limit + 2):
+            read_size = min(chunk_size, end)
+            end -= read_size
+            f.seek(end)
+            data = f.read(read_size) + data
+            newline_count = data.count(b"\n")
+
+    lines = [ln for ln in data.split(b"\n") if ln.strip()]
+    raw_lines = lines[-limit:]
+
+    out: list[dict[str, Any]] = []
+    for ln in raw_lines:
+        try:
+            obj = json.loads(ln.decode("utf-8", errors="replace"))
+            if isinstance(obj, dict):
+                out.append(obj)
+        except Exception:
+            continue
+    return out
