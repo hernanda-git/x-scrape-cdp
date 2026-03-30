@@ -14,6 +14,7 @@ src/x_scrape_cdp/session.py
 src/x_scrape_cdp/state.py
 src/x_scrape_cdp/stealth.py
 src/x_scrape_cdp/storage.py
+src/x_scrape_cdp/utils.py
 src/x_scrape_cdp.egg-info/PKG-INFO
 src/x_scrape_cdp.egg-info/SOURCES.txt
 src/x_scrape_cdp.egg-info/dependency_links.txt
@@ -24,7 +25,11 @@ src/x_scrape_cdp/agent/__init__.py
 tests/test_config.py
 tests/test_cookies.py
 tests/test_extract_parsing.py
+tests/test_navigation.py
 tests/test_post_to_dict.py
 tests/test_rate_cap.py
+tests/test_session.py
 tests/test_state.py
+tests/test_stealth.py
 tests/test_storage.py
+tests/test_utils.py

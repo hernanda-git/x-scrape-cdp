@@ -19,7 +19,10 @@ async def open_profile(
 
 
 async def human_warmup(page: Page) -> None:
-    await page.mouse.move(100, 200, steps=8)
+    # Randomize start position to avoid detection
+    start_x = random.randint(50, 400)
+    start_y = random.randint(100, 500)
+    await page.mouse.move(start_x, start_y, steps=random.randint(5, 12))
     await asyncio.sleep(random.uniform(0.4, 1.2))
     await page.mouse.wheel(0, random.randint(120, 260))
     await asyncio.sleep(random.uniform(0.5, 1.4))

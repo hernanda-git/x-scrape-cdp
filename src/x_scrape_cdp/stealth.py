@@ -5,12 +5,17 @@ from dataclasses import dataclass
 
 from playwright.async_api import Page
 
+# Explicit version detection for playwright-stealth
 try:
-    # playwright-stealth 1.x
-    from playwright_stealth import stealth_async  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover - exercised only with 2.x API
-    # playwright-stealth 2.x
-    from playwright_stealth.stealth import Stealth
+    import playwright_stealth
+    _STEALTH_VERSION = getattr(playwright_stealth, "__version__", None)
+    # Default to 2.x if version not found (newer versions don't have __version__)
+    if _STEALTH_VERSION is None:
+        _STEALTH_VERSION = "2.x"
+    _HAS_STEALTH_ASYNC = True
+except ImportError:
+    _STEALTH_VERSION = None
+    _HAS_STEALTH_ASYNC = False
 
 
 @dataclass
@@ -39,7 +44,16 @@ async def apply_stealth(page: Page, profile: StealthProfile) -> None:
         });
         """
     )
-    try:
-        await stealth_async(page)  # type: ignore[misc]
-    except NameError:
+
+    if not _HAS_STEALTH_ASYNC:
+        return
+
+    # Use version-appropriate API
+    if _STEALTH_VERSION and _STEALTH_VERSION.startswith("1."):
+        # playwright-stealth 1.x
+        from playwright_stealth import stealth_async
+        await stealth_async(page)
+    else:
+        # playwright-stealth 2.x
+        from playwright_stealth.stealth import Stealth
         await Stealth().apply_stealth_async(page)

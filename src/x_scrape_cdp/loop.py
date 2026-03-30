@@ -27,6 +27,7 @@ from .storage import (
     reset_listener_data_files,
     save_seen_atomic,
 )
+from .utils import preview_text
 
 logger = logging.getLogger("x_scrape_cdp.loop")
 
@@ -45,13 +46,6 @@ def _sleep_between_cycles_seconds(settings: Settings) -> tuple[float, float, boo
     if floor <= 0 or sampled >= floor:
         return sampled, floor, False
     return floor, floor, True
-
-
-def _preview_text(text: str, max_len: int = 100) -> str:
-    one_line = " ".join((text or "").split())
-    if len(one_line) <= max_len:
-        return one_line
-    return one_line[: max_len - 1] + "…"
 
 
 async def validate_session(settings: Settings) -> bool:
@@ -138,7 +132,7 @@ async def run_once(settings: Settings) -> tuple[int, list[dict[str, object]]]:
                             p.id,
                             d.get("kind"),
                             p.url,
-                            _preview_text(d.get("text") or ""),
+                            preview_text(d.get("text") or ""),
                         )
                     if settings.webhook_enabled and settings.webhook_url:
                         await post_webhook(
@@ -201,6 +195,7 @@ async def run_listener(settings: Settings) -> None:
             clamped=clamped,
             rate_floor_seconds=rate_floor,
             cap_per_minute=settings.max_refreshes_per_minute,
+            max_items=10,
         )
 
     if rich_tty:
@@ -220,6 +215,7 @@ async def run_listener(settings: Settings) -> None:
             clamped=False,
             rate_floor_seconds=0.0,
             cap_per_minute=settings.max_refreshes_per_minute,
+            max_items=10,
         )
 
         with rich_log.create_live_dashboard(initial) as live:

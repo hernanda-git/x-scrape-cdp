@@ -13,6 +13,8 @@ from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
 
+from .utils import preview_text
+
 LISTENER_THEME = Theme(
     {
         "title": "bold bright_cyan",
@@ -37,13 +39,6 @@ def use_rich_stdout() -> bool:
 
 def get_console() -> Console:
     return _console
-
-
-def _preview_text(text: str, max_len: int = 70) -> str:
-    one_line = " ".join((text or "").split())
-    if len(one_line) <= max_len:
-        return one_line
-    return one_line[: max_len - 1] + "…"
 
 
 def _fmt_int(v: Any) -> str:
@@ -122,7 +117,7 @@ def render_recent_posts_table(
             str(handle),
             _fmt_dt_short(published_at),
             _eng_line(d),
-            _preview_text(d.get("text") or "", max_len=70),
+            preview_text(d.get("text") or "", max_len=70),
         )
     return table
 
@@ -137,6 +132,7 @@ def render_recent_posts_panel(
     clamped: bool,
     rate_floor_seconds: float,
     cap_per_minute: int,
+    max_items: int = 10,
 ) -> Panel:
     t = ", ".join(targets)
     subtitle = (
@@ -147,9 +143,9 @@ def render_recent_posts_panel(
         subtitle += f" (clamped: floor={rate_floor_seconds:.1f}s cap={cap_per_minute}/min)"
 
     return Panel(
-        render_recent_posts_table(recent_posts),
+        render_recent_posts_table(recent_posts, max_items=max_items),
         title=Text.assemble(
-            (" last fetched posts (", "title"), (f"{10}", "count"), (")", "title")
+            (" last fetched posts (", "title"), (f"{max_items}", "count"), (")", "title")
         ),
         subtitle=subtitle,
         border_style="bright_cyan",

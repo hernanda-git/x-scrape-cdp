@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
+
+logger = logging.getLogger("x_scrape_cdp.cdp")
 
 
 @dataclass
@@ -97,22 +100,24 @@ async def connect_playwright(cdp_http_url: str) -> PlaywrightConnection:
     try:
         p = await async_playwright().start()
         browser = await p.chromium.connect_over_cdp(cdp_http_url)
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         raise RuntimeError(
             f"Failed connecting to CDP URL '{cdp_http_url}'. "
             "Check CDP_URL and confirm Chrome is running with --remote-debugging-port."
         ) from exc
 
     contexts = browser.contexts
-    if contexts:
-        context = contexts[0]
-    else:
+    if not contexts:
+        logger.warning("No browser contexts found, creating new context")
         context = await browser.new_context()
+    else:
+        context = contexts[0]
 
     pages = context.pages
-    if pages:
-        page = pages[0]
-    else:
+    if not pages:
+        logger.warning("No pages in context, creating new page")
         page = await context.new_page()
+    else:
+        page = pages[0]
 
     return PlaywrightConnection(playwright=p, browser=browser, context=context, page=page)
